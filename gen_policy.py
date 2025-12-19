@@ -1,3 +1,4 @@
+from get_forti_objects import get_forti_objects
 from determine_type import write_file
 import ipaddress
 
@@ -33,72 +34,63 @@ def get_netmask(ip_string):
     except ValueError:
         return f"{ip_string} 255.255.255.255"
 
-def get_service_name(port):
-    """Renvoie le nom standard ou prépare un nom custom"""
-    port = str(port)
-    if port in STANDARD_SERVICES:
-        return STANDARD_SERVICES[port]
-    else:
-        unique_custom_services.add(port)
-        return f"TCP-{port}"
-
-def gen_policy(data):
+def gen_policy(data, forti_objects_file="FW_objects.txt"):
     """Génère la configuration Fortinet à partir des données agrégées."""
 
     output = []
+    forti_objects = get_forti_objects(forti_objects_file)
 
-    for std_or_custom, connexion in data.items():
-        for src_subnet, destinations in connexion.items():
-            unique_addresses.add(src_subnet)
-            for dst_ip, ports in destinations.items():
-                unique_addresses.add(dst_ip)
-                for port in ports:
-                    get_service_name(port)
+    for interfaces_key, data_for_intf in data.items():
+        for std_or_custom, connexion in data_for_intf.items():
+            for src_subnet, destinations in connexion.items():
+                unique_addresses.add(src_subnet)
+                for dst_ip, service in destinations.items():
+                    unique_addresses.add(dst_ip)
 
     output.append("config firewall address")
     for addr in sorted(unique_addresses):
+        if forti_objects.get(addr):
+            continue
         output.append(f'    edit "{addr}"')
         output.append(f'        set subnet {get_netmask(addr)}')
         output.append("    next")
     output.append("end\n")
 
-    if unique_custom_services:
-        output.append("config firewall service custom")
-        for port in sorted(unique_custom_services, key=int):
-            output.append(f'    edit "TCP-{port}"')
-
-            output.append(f'        set tcp-portrange {port}')
-            output.append("    next")
-        output.append("end\n")
-
     output.append("config firewall policy")
 
-    for std_or_custom, connexion in data.items():
-        for src_subnet, destinations in connexion.items():
-            dst_list = list(destinations.keys())
+    for interfaces_key, data_for_intf in data.items():
+        src_intf, dst_intf = interfaces_key.split("//\\\\")
+        for std_or_custom, connexion in data_for_intf.items():
+            for src_subnet, destinations in connexion.items():
+                dst_list = list(destinations.keys())
+                for i in range(len(dst_list)):
+                    if forti_objects.get(dst_list[i]):
+                        dst_list[i] = forti_objects.get(dst_list[i])
 
-            all_ports_raw = []
-            for p_list in destinations.values():
-                all_ports_raw.extend(p_list)
+                service_names = []
+                for p_list in destinations.values():
+                    if p_list not in service_names:
+                        service_names.append(p_list)
 
-            service_names = sorted(list(set([get_service_name(p) for p in all_ports_raw])))
+                output.append("    edit 0")
+                output.append(f'        set name "Policy_{src_subnet.replace("/", "_")}_{std_or_custom}"')
+                output.append(f'        set srcintf "{src_intf}"')
+                output.append(f'        set dstintf "{dst_intf}"')
+                output.append(f'        set srcaddr "{src_subnet if forti_objects.get(src_subnet) is None else forti_objects.get(src_subnet)}"')
 
-            output.append("    edit 0")
-            output.append(f'        set name "Policy_{src_subnet.replace("/", "_")}_{std_or_custom}"')
-            output.append('        set srcintf "any"')
-            output.append('        set dstintf "any"')
-            output.append(f'        set srcaddr "{src_subnet}"')
-
-            dst_str = '" "'.join(dst_list)
-            output.append(f'        set dstaddr "{dst_str}"')
-            
-            svc_str = '" "'.join(service_names)
-            output.append(f'        set service "{svc_str}"')
-            
-            output.append('        set action accept')
-            output.append('        set schedule "always"')
-            output.append('        set logtraffic all')
-            output.append("    next")
+                dst_str = '" "'.join(dst_list)
+                output.append(f'        set dstaddr "{dst_str}"')
+                
+                svc_str = ""
+                
+                for i in range(len(service_names)):
+                    svc_str += ' "' + service_names[i] + '"'
+                output.append(f'        set service {svc_str}')
+                
+                output.append('        set action accept')
+                output.append('        set schedule "always"')
+                output.append('        set logtraffic all')
+                output.append("    next")
 
     output.append("end")
 

@@ -67,10 +67,10 @@ def gen_policy(data, forti_objects_file="FW_objects.txt"):
                     if forti_objects.get(dst_list[i]):
                         dst_list[i] = forti_objects.get(dst_list[i])
 
-                service_names = []
+                service_names = {}
                 for p_list in destinations.values():
-                    if p_list not in service_names:
-                        service_names.append(p_list)
+                    for service in p_list:
+                        service_names[service] = []
 
                 output.append("    edit 0")
                 output.append(f'        set name "Policy_{src_subnet.replace("/", "_")}_{std_or_custom}"')
@@ -83,9 +83,9 @@ def gen_policy(data, forti_objects_file="FW_objects.txt"):
                 
                 svc_str = ""
                 
-                for i in range(len(service_names)):
-                    for y in range(len(service_names[i])):
-                        svc_str += ' "' + service_names[i][y] + '"'
+                for service_name in service_names.keys():
+                    svc_str += ' "' + service_name + '"'
+
                 output.append(f'        set service {svc_str}')
                 
                 output.append('        set action accept')

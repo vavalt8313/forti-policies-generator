@@ -84,7 +84,8 @@ def gen_policy(data, forti_objects_file="FW_objects.txt"):
                 svc_str = ""
                 
                 for i in range(len(service_names)):
-                    svc_str += ' "' + service_names[i] + '"'
+                    for y in range(len(service_names[i])):
+                        svc_str += ' "' + service_names[i][y] + '"'
                 output.append(f'        set service {svc_str}')
                 
                 output.append('        set action accept')

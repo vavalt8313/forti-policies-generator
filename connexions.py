@@ -20,20 +20,19 @@ def analyse_line(connexions: dict, line: dict, interfaces_key: tuple) -> dict:
         print(f"Invalid IP address found: {srcip}. Skipping this entry.")
         return connexions
     
-    std_or_custom = "standard" if str(line.get("dstport")) in STANDARD_SERVICES else "custom"
     
-    if connexions[interfaces_key][std_or_custom].get(str(subnet)):
+    if connexions[interfaces_key].get(str(subnet)):
 
-        if connexions[interfaces_key][std_or_custom][str(subnet)].get(line.get("dstip")):
+        if connexions[interfaces_key][str(subnet)].get(line.get("dstip")):
 
-            if (line.get("service") not in connexions[interfaces_key][std_or_custom][str(subnet)][line.get("dstip")]) and line.get("service") is not None:
-                connexions[interfaces_key][std_or_custom][str(subnet)][line.get("dstip")].append(line.get("service"))
+            if (line.get("service") not in connexions[interfaces_key][str(subnet)][line.get("dstip")]) and line.get("service") is not None:
+                connexions[interfaces_key][str(subnet)][line.get("dstip")].append(line.get("service"))
 
         elif line.get("dstip") is not None and line.get("service") is not None:
-            connexions[interfaces_key][std_or_custom][str(subnet)][line.get("dstip")] = [line.get("service")]
+            connexions[interfaces_key][str(subnet)][line.get("dstip")] = [line.get("service")]
 
     elif line.get("dstip") is not None and line.get("service") is not None and subnet is not None:
-        connexions[interfaces_key][std_or_custom][str(subnet)] = {line.get("dstip"): [line.get("service")]}
+        connexions[interfaces_key][str(subnet)] = {line.get("dstip"): [line.get("service")]}
     
     return connexions
 
@@ -56,9 +55,6 @@ def regroup_connexions(data: tuple, file_path: str) -> dict:
     for line in tqdm(data, desc="Regrouping connexions: "):
         interfaces_key = str(line.get("srcintf")) + "//\\\\" + str(line.get("dstintf"))
         if connexions.get(interfaces_key) is None:
-            connexions[interfaces_key] = {
-                "standard": {},
-                "custom": {}
-            }
+            connexions[interfaces_key] = {}
         connexions = analyse_line(connexions, line, interfaces_key)
     return connexions

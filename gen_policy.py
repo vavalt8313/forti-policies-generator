@@ -1,4 +1,5 @@
 from get_forti_objects import get_forti_objects
+from determine_services_or_ip import determine_services_or_ip
 from determine_type import write_file
 import ipaddress
 
@@ -39,13 +40,13 @@ def gen_policy(data, forti_objects_file="FW_objects.txt"):
 
     output = []
     forti_objects = get_forti_objects(forti_objects_file)
+    sorted_data = determine_services_or_ip(data)
 
-    for interfaces_key, data_for_intf in data.items():
-        for std_or_custom, connexion in data_for_intf.items():
-            for src_subnet, destinations in connexion.items():
-                unique_addresses.add(src_subnet)
-                for dst_ip, service in destinations.items():
-                    unique_addresses.add(dst_ip)
+    for interfaces_key, connexion in data.items():
+        for src_subnet, destinations in connexion.items():
+            unique_addresses.add(src_subnet)
+            for dst_ip, service in destinations.items():
+                unique_addresses.add(dst_ip)
 
     output.append("config firewall address")
     for addr in sorted(unique_addresses):
@@ -58,40 +59,71 @@ def gen_policy(data, forti_objects_file="FW_objects.txt"):
 
     output.append("config firewall policy")
 
-    for interfaces_key, data_for_intf in data.items():
+    for interfaces_key, connexion in sorted_data.items():
         src_intf, dst_intf = interfaces_key.split("//\\\\")
-        for std_or_custom, connexion in data_for_intf.items():
-            for src_subnet, destinations in connexion.items():
-                dst_list = list(destinations.keys())
-                for i in range(len(dst_list)):
-                    if forti_objects.get(dst_list[i]):
-                        dst_list[i] = forti_objects.get(dst_list[i])
 
-                service_names = {}
-                for p_list in destinations.values():
-                    for service in p_list:
-                        service_names[service] = []
+        for subnet, data_ip in connexion["ip"].items():
+            for ip, services in data_ip.items():
 
                 output.append("    edit 0")
-                output.append(f'        set name "Policy_{src_subnet.replace("/", "_")}_{std_or_custom}"')
+                output.append(f'        set name "Policy_ip_{subnet.replace("/", "_")}_{ip}"')
                 output.append(f'        set srcintf "{src_intf}"')
                 output.append(f'        set dstintf "{dst_intf}"')
-                output.append(f'        set srcaddr "{src_subnet if forti_objects.get(src_subnet) is None else forti_objects.get(src_subnet)}"')
-
-                dst_str = '" "'.join(dst_list)
-                output.append(f'        set dstaddr "{dst_str}"')
+                output.append(f'        set srcaddr "{subnet if forti_objects.get(subnet) is None else forti_objects.get(subnet)}"')
+                output.append(f'        set dstaddr "{ip if forti_objects.get(ip) is None else forti_objects.get(ip)}"')
                 
                 svc_str = ""
                 
-                for service_name in service_names.keys():
+                for service_name in services:
                     svc_str += ' "' + service_name + '"'
-
-                output.append(f'        set service {svc_str}')
+                output.append(f'        set service{svc_str}')
                 
                 output.append('        set action accept')
                 output.append('        set schedule "always"')
                 output.append('        set logtraffic all')
                 output.append("    next")
+        
+        for subnet, data_service in connexion["service"].items():
+            for service, ip_list in data_service.items():
+
+                output.append("    edit 0")
+                output.append(f'        set name "Policy_service_{subnet.replace("/", "_")}_{service}"')
+                output.append(f'        set srcintf "{src_intf}"')
+                output.append(f'        set dstintf "{dst_intf}"')
+                output.append(f'        set srcaddr "{subnet if forti_objects.get(subnet) is None else forti_objects.get(subnet)}"')
+                
+                ip_str = ""
+                
+                for ip in ip_list:
+                    ip_str += f' "{ip if forti_objects.get(ip) is None else forti_objects.get(ip)}"'
+                output.append(f'        set dstaddr{ip_str}')
+                
+                output.append(f'        set service "{service}"')
+                
+                output.append('        set action accept')
+                output.append('        set schedule "always"')
+                output.append('        set logtraffic all')
+                output.append("    next")
+
+        #for service, data_ip in connexion["subnet"].items():
+        #    for ip, subnets in data_ip.items():
+
+        #        output.append("    edit 0")
+        #        output.append(f'        set name "Policy_subnet_{ip}_{service}"')
+        #        output.append(f'        set srcintf "{src_intf}"')
+        #        output.append(f'        set dstintf "{dst_intf}"')
+        #        subnet_str = ""
+        #        
+        #        for subnet in subnets:
+        #            subnet_str += f' "{subnet if forti_objects.get(subnet) is None else forti_objects.get(subnet)}"'
+        #        output.append(f'        set srcaddr{subnet_str}')
+        #        output.append(f'        set dstaddr "{ip if forti_objects.get(ip) is None else forti_objects.get(ip)}"')
+        
+        #        output.append(f'        set service "{service}"')
+        #        output.append('        set action accept')
+        #        output.append('        set schedule "always"')
+        #        output.append('        set logtraffic all')
+        #        output.append("    next")
 
     output.append("end")
 

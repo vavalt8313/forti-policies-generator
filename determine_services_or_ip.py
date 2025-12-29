@@ -11,10 +11,11 @@ def determine_services_or_ip(data: dict) -> dict:
     :rtype: dict
     """
 
+    print("Determining grouping by services or IP...")
+
     result = {
     }
 
-    # Global collections for subnet grouping
     service_to_ips_global = defaultdict(set)
     ip_service_to_subnets = defaultdict(set)
 
@@ -26,53 +27,28 @@ def determine_services_or_ip(data: dict) -> dict:
         }
 
         for subnet, data_for_subnet in data_for_intf.items():
-            # Collect data for this subnet
             service_to_ips = defaultdict(list)
             ip_to_services = defaultdict(list)
             for ip, services in data_for_subnet.items():
-                for service in services:
-                    if ip not in service_to_ips[service]:
-                        service_to_ips[service].append(ip)
-                    if service not in ip_to_services[ip]:
-                        ip_to_services[ip].append(service)
-                    # Global collections
-                    service_to_ips_global[service] = [ip, intf]
-                    ip_service_to_subnets[(ip, service)].add(subnet)
+                for svc in services:
+                    if ip not in service_to_ips[svc]:
+                        service_to_ips[svc].append(ip)
+                    if svc not in ip_to_services[ip]:
+                        ip_to_services[ip].append(svc)
+                    service_to_ips_global[svc] = [ip, intf]
+                    ip_service_to_subnets[(ip, svc)].add(subnet)
 
-            # Determine grouping
-            group_by_service = any(len(ips) > 1 for ips in service_to_ips.values())
-            group_by_ip = False
-            if not group_by_service:
-                for ip, svcs in ip_to_services.items():
-                    if len(svcs) > 1:
-                        # Check if all services are unique to this IP
-                        unique = all(len(service_to_ips[svc]) == 1 and service_to_ips[svc][0] == ip for svc in svcs)
-                        if unique:
-                            group_by_ip = True
-                            break
-
-            # Populate result based on grouping
-            if group_by_service:
-                if subnet not in result[intf]["service"]:
-                    result[intf]["service"][subnet] = {}
-                for svc, ips in service_to_ips.items():
+            for svc, ips in service_to_ips.items():
+                if len(ips) > 1:
+                    if subnet not in result[intf]["service"]:
+                        result[intf]["service"][subnet] = {}
                     result[intf]["service"][subnet][svc] = ips
-            elif group_by_ip:
-                if subnet not in result[intf]["ip"]:
-                    result[intf]["ip"][subnet] = {}
-                for ip, svcs in ip_to_services.items():
-                    result[intf]["ip"][subnet][ip] = svcs
 
-    # Populate subnet grouping
-    #for service, infos in service_to_ips_global.items():
-    #    ips, intf = infos
-    #    if len(ips) == 1:
-    #        ip = next(iter(ips))
-    #        subnets = ip_service_to_subnets[(ip, service)]
-    #        if len(subnets) > 1:
-    #            if service not in result[intf]["subnet"]:
-    #                result[intf]["subnet"][service] = {}
-    #            result[intf]["subnet"][service][ip] = list(subnets)
+            for ip, services in ip_to_services.items():
+                if len(services) > 1 or (len(services) == 1 and len(service_to_ips[services[0]]) == 1):
+                    if subnet not in result[intf]["ip"]:
+                        result[intf]["ip"][subnet] = {}
+                    result[intf]["ip"][subnet][ip] = services
 
     save_json("test.json", result)
     return result

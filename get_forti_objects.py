@@ -24,16 +24,16 @@ def get_forti_objects(input_file, output_file="forti_objects.json"):
         f = open(input_file, 'r', encoding='utf-8') # Test si le fichier existe
         f.close() # Si oui je le ferme tout de suite (opti opti)
     except FileNotFoundError:
-        input_file = input("Fichier configuration Forti non trouvé. Veuillez entrer le nom correct du fichier Forti contenant les objets ou 'non' si vous ne l'avez pas: ")
-        if not input_file or input_file.lower() == 'non':
-            print("Aucun fichier fourni. Abandon de l'extraction des objets Forti.")
+        input_file = input("Config FortiGate file not found. Please provide the correct file path or type 'no' to skip: ")
+        if not input_file or input_file.lower() == 'no':
+            print("No file path provided. Giving up on Forti object extraction.")
             gc.collect() # opti opti (libération mémoire)
             return inventory
         try:
             f = open(input_file, 'r', encoding='utf-8')
             f.close()
         except FileNotFoundError:
-            print("Fichier toujours introuvable. Abandon de l'extraction des objets Forti.")
+            print("File not found. Giving up on Forti object extraction")
             gc.collect() # opti opti (libération mémoire)
             return inventory
 
@@ -67,7 +67,7 @@ def get_forti_objects(input_file, output_file="forti_objects.json"):
     with open(output_file, 'w', encoding='utf-8') as f: 
         json.dump(inventory, f, indent=4) # J'enregistre le dictionnaire dans un fichier JSON pour le verifier plus tard si besoin (optionnel)
 
-    print("Extraction des objets forti terminée.")
+    print("Forti objects extraction completed.")
     
     gc.collect() # opti opti (libération mémoire)
     

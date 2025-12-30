@@ -125,5 +125,5 @@ def gen_policy(data, forti_objects_file="FW_objects.txt"):
     result = "\n".join(output) # Je crée une grosse chaîne de caractères avec des sauts de ligne entre chaque élément de la liste pour écrire qu'une seule fois dans le fichier (opti opti)
 
     write_file("generated_fortinet_policy.txt", result) # J'écris le résultat dans un fichier
-    print("Configuration Fortinet générée dans 'generated_fortinet_policy.txt'.")
+    print("Forti policy generation completed. Check 'generated_fortinet_policy.txt' for the output.")
     return result

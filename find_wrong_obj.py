@@ -178,4 +178,5 @@ if __name__ == "__main__":
     if len(argv) > 1:
         wrong_services_obj(argv[1])
     else:
-        wrong_services_obj("forti_config.txt")
+        input_file = input("Please enter the FortiGate configuration file path: ")
+        wrong_services_obj(input_file=input_file)

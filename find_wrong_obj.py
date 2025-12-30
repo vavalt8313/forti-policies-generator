@@ -121,7 +121,7 @@ def parse_config_file(input_file, inventory):
                 elif line.startswith('set udp-portrange'):
                     process_line(current_name, line, inventory, "udp") # J'analyse la ligne UDP
 
-def wrong_services_obj(input_file, output_file="forti_objects.json"):
+def wrong_services_obj(input_file, output_file="forti_objects_sorted_bad_good.json"):
     """
     Analyse un fichier de configuration FortiGate pour identifier les objets de service incorrects.
 
@@ -160,4 +160,5 @@ if __name__ == "__main__":
         wrong_services_obj(argv[1])
     else:
         input_file = input("Please enter the FortiGate configuration file path: ")
+
         wrong_services_obj(input_file=input_file)

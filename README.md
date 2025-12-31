@@ -61,7 +61,7 @@ python find_wrong_obj.py <chemin_du_fichier_config>
 > **Note :** Si aucun fichier n'est spécifié, le script demandera à l'utilisateur de le saisir.
 
 ### Résultat
-Le script génère un fichier de sortie nommé **`forti_objects.json`**. Ce fichier contient l'inventaire structuré des objets, facilitant ainsi la correction des configurations.
+Le script génère un fichier de sortie nommé **`forti_objects_sorted_bad_good.json`**. Ce fichier contient l'inventaire structuré des objets, facilitant ainsi la correction des configurations.
 
 ---
 
@@ -92,3 +92,4 @@ Enter a csv file path (or 'exit' to quit): chemin/vers/mes_logs.csv
 Une fois le traitement terminé, vous pouvez soit indiquer un nouveau fichier à traiter, soit taper `exit` pour fermer l'application.
 
 ---
+

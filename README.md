@@ -92,13 +92,13 @@ Enter a csv file path (or 'exit' to quit): chemin/vers/mes_logs.csv
 Une fois le traitement terminé, vous pouvez soit indiquer un nouveau fichier à traiter, soit taper `exit` pour fermer l'application.
 
 >**Note importante: **
->
 >Le programme vous proposera également de fournir un fichier de configuration Forti afin de remplacer les adresses ip par les noms réels des objets pour que les règles puissent être directement implémentées.
 >Par défaut il va le chercher automatiquement sous le nom de `FW_objects.txt` mais s'il ne le trouve pas le programme vous proposera de rentrer le chemin vers le fichier.
 >
 >*Marche avec les fichiers `.txt` et `.conf`*
 
 ---
+
 
 
 
